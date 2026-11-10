@@ -1,0 +1,19 @@
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Python temporary files
+__pycache__/
+*.pyc
+
+# Local logs and temporary files
+*.log
+*.tmp
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
