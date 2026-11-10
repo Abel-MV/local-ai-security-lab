@@ -50,7 +50,7 @@ nvidia-smi
 
 **Evidence E01 — Host NVIDIA verification**
 
-![E01 - NVIDIA driver and GPU detected by nvidia-smi](../evidence/E01-local-ai-lab-nvidia-driver-verification.png)
+![E01 - NVIDIA driver and GPU detected by nvidia-smi](../evidence/E01-local-ai-lab-nvidia-driver-verification.png.png)
 
 ### T02 — Docker Engine Execution
 
@@ -64,7 +64,7 @@ sudo docker run --rm hello-world
 
 **Evidence E02 — Docker Engine verification**
 
-![E02 - Docker hello-world container executes successfully](../evidence/E02-local-ai-security-lab-docker-engine-verification.png)
+![E02 - Docker hello-world container executes successfully](../evidence/E02-local-ai-security-lab-docker-engine-verification.png.png)
 
 ### T03 — NVIDIA Container Integration
 
@@ -78,7 +78,7 @@ sudo docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi
 
 **Evidence E03 — Container GPU access**
 
-![E03 - NVIDIA GPU detected from a Docker container](../evidence/E03-local-ai-security-lab-nvidia-container-verification.png)
+![E03 - NVIDIA GPU detected from a Docker container](../evidence/E03-local-ai-security-lab-nvidia-container-verification.png.png)
 
 ### T04 — Container Deployment
 
