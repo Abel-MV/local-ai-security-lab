@@ -4,7 +4,7 @@
 
 This guide documents the **initial, tested implementation** of the Local AI Security Lab on Kali Linux. It covers Docker Engine, Docker Compose, NVIDIA Container Toolkit, Ollama, Open WebUI and Qdrant, followed by local model and RAG setup.
 
-The steps follow the laboratory's Obsidian installation records. They are intended to support a fresh deployment, but a **complete rebuild on another Kali installation has not yet been validated**. In particular, NVIDIA driver installation was outside the recorded procedure, and the original container images use mutable tags.
+The steps follow the laboratory's Obsidian installation records, adapted to the **public GitHub repository layout**. They are intended to support a fresh deployment, but a **complete rebuild on another Kali installation has not yet been validated**. In particular, NVIDIA driver installation was outside the recorded procedure, and the original container images use mutable tags.
 
 ## Reference environment
 
@@ -15,10 +15,11 @@ The steps follow the laboratory's Obsidian installation records. They are intend
 | GPU | NVIDIA GeForce RTX 5060 Ti, 16 GB |
 | NVIDIA driver | `620.70.06` |
 | Compose | V2 (`2.40.3` in the original lab) |
-| Project directory | `~/Projects/local-ai-security-lab` |
+| Original local project directory | `~/Projects/local-ai-security-lab` |
+| Public deployment files | `config/compose.yaml` and `config/.env.example` |
 | Browser access | `http://127.0.0.1:3000` on the host only |
 
-**Prerequisites:** a compatible NVIDIA driver installed and operational (`nvidia-smi`), network access to obtain packages/images/models, and sufficient storage and memory. The exact driver installation is hardware- and kernel-dependent and was **not** reproduced in the initial project.
+**Prerequisites:** a compatible NVIDIA driver installed and operational (`nvidia-smi`), network access to obtain packages/images/models, and sufficient storage and memory. Git is required to clone the published repository. The exact driver installation is hardware- and kernel-dependent and was **not** reproduced in the initial project.
 
 ## 1. Check the host
 
@@ -49,6 +50,8 @@ docker compose version
 ```
 
 The initial test returned `Hello from Docker!`. Administrative Docker commands are deliberately run with `sudo`; the user was not added to the privileged `docker` group.
+
+**Compatibility note:** the recorded environment used the `docker compose` (V2) command. Package names and availability can vary by Kali release; if `docker compose version` fails, install a compatible Docker Compose V2 plugin before continuing. The legacy `docker-compose` executable is not a substitute for the command shown below without checking compatibility.
 
 ## 3. Configure NVIDIA Container Toolkit
 
@@ -84,80 +87,42 @@ sudo docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi
 
 In the original lab the temporary Ubuntu container detected the NVIDIA RTX 5060 Ti. On a different host, check driver/runtime compatibility before continuing.
 
-## 4. Create the Compose project
+## 4. Obtain the published Compose configuration
+
+Rather than creating another `compose.yaml` manually, clone this repository. It already contains the tested service definitions and a safe environment-file template:
 
 ```bash
-mkdir -p ~/Projects/local-ai-security-lab
-cd ~/Projects/local-ai-security-lab
+sudo apt install git
+mkdir -p ~/Projects
+cd ~/Projects
+git clone https://github.com/Abel-MV/local-ai-security-lab.git
+cd local-ai-security-lab/config
 ```
 
-Create **`compose.yaml`** containing the configuration used in the initial deployment:
+The working directory for the following Compose commands is now **`~/Projects/local-ai-security-lab/config`**.
 
-```yaml
-services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    restart: unless-stopped
-    volumes:
-      - ollama_data:/root/.ollama
-    expose:
-      - "11434"
-    networks:
-      - ai_network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: qdrant
-    restart: unless-stopped
-    volumes:
-      - qdrant_data:/qdrant/storage
-    expose:
-      - "6333"
-    networks:
-      - ai_network
-
-  open-webui:
-    image: ghcr.io/open-webui/open-webui:main
-    container_name: open-webui
-    restart: unless-stopped
-    depends_on:
-      - ollama
-      - qdrant
-    ports:
-      - "127.0.0.1:3000:8080"
-    environment:
-      OLLAMA_BASE_URL: http://ollama:11434
-      VECTOR_DB: qdrant
-      QDRANT_URI: http://qdrant:6333
-      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?Set WEBUI_SECRET_KEY in .env}
-    volumes:
-      - open_webui_data:/app/backend/data
-    networks:
-      - ai_network
-
-networks:
-  ai_network:
-    driver: bridge
-
-volumes:
-  ollama_data:
-  qdrant_data:
-  open_webui_data:
+```text
+local-ai-security-lab/
+├── .gitignore
+├── config/
+│   ├── compose.yaml
+│   └── .env.example
+├── docs/
+└── evidence/
 ```
 
-**Reproducibility limitation:** `latest` and `main` are mutable image tags. The file above reproduces the *recorded configuration*, not necessarily the exact image builds originally tested. Pin validated image digests for strict repeatability. Qdrant is not configured with API-key authentication; do not expose this network to untrusted containers or external users.
+The published [`compose.yaml`](../config/compose.yaml) defines:
+
+- **Ollama**, with GPU reservation and the `ollama_data` named volume.
+- **Qdrant**, using the `qdrant_data` named volume and an internal Docker port.
+- **Open WebUI**, bound to `127.0.0.1:3000` and using the `open_webui_data` named volume.
+- A shared `ai_network` Docker bridge network.
+
+**Reproducibility limitation:** the original images use `latest` and `main`, which are mutable tags. The published Compose file reproduces the *recorded configuration*, not necessarily the exact image builds originally tested. Pin validated image digests for strict repeatability. Qdrant is not configured with API-key authentication; do not expose this network to untrusted containers or external users.
 
 ## 5. Protect the environment secret
 
-From the project directory, create a fresh, random Open WebUI secret:
+From the **`config/` directory**, generate a fresh random Open WebUI secret in a new `.env` file:
 
 ```bash
 openssl rand -hex 32 | awk '{print "WEBUI_SECRET_KEY=" $0}' > .env
@@ -165,27 +130,18 @@ chmod 600 .env
 stat -c '%a %n' .env
 ```
 
-The observed file mode was `600`. Never publish the real `.env` file or its contents.
+The original lab recorded file mode `600`. Never publish the actual `.env` file or its contents. The repository already includes [`config/.env.example`](../config/.env.example) with a placeholder and a root [`.gitignore`](../.gitignore) that excludes real `.env` files; **do not replace the placeholder in `.env.example` with a real key**.
 
-Create **`.env.example`** with a placeholder only:
-
-```dotenv
-WEBUI_SECRET_KEY=REPLACE_WITH_YOUR_OWN_RANDOM_SECRET
-```
-
-Create **`.gitignore`**:
-
-```gitignore
-.env
-*.tar.gz
-```
+Note that `.gitignore` reduces the risk of accidentally committing an untracked secret but does not remove anything already committed or published.
 
 ## 6. Deploy and verify the containers
 
+Run these commands from **`~/Projects/local-ai-security-lab/config`**, where both `compose.yaml` and `.env` reside. The explicit `--env-file` and `-f` options avoid ambiguity about which configuration Docker Compose uses:
+
 ```bash
-sudo docker compose config --quiet
-sudo docker compose up -d
-sudo docker compose ps
+sudo docker compose --env-file .env -f compose.yaml config --quiet
+sudo docker compose --env-file .env -f compose.yaml up -d
+sudo docker compose --env-file .env -f compose.yaml ps
 ```
 
 The original deployment showed Ollama and Qdrant running, with Open WebUI reported as healthy. The `depends_on` setting orders startup but does not guarantee application readiness; check the actual service state.
@@ -238,9 +194,12 @@ The original private knowledge base, **`Network Forensics - RAG Test`**, indexed
 
 ## 9. Restart, persistence and maintenance
 
+Return to **`~/Projects/local-ai-security-lab/config`** if you are working in another directory:
+
 ```bash
-sudo docker compose restart
-sudo docker compose ps
+cd ~/Projects/local-ai-security-lab/config
+sudo docker compose --env-file .env -f compose.yaml restart
+sudo docker compose --env-file .env -f compose.yaml ps
 ```
 
 After a restart, the original lab retained downloaded Ollama models, Open WebUI configuration/knowledge and Qdrant collections in the three named volumes.
@@ -248,14 +207,14 @@ After a restart, the original lab retained downloaded Ollama models, Open WebUI 
 To stop or remove project containers without deliberately deleting named volumes:
 
 ```bash
-sudo docker compose stop
+sudo docker compose --env-file .env -f compose.yaml stop
 # When removal is required:
-sudo docker compose down
+sudo docker compose --env-file .env -f compose.yaml down
 ```
 
 **Do not use `docker compose down -v` unless you intentionally want to delete project volumes and their data.**
 
-The original backup contained configuration files (`compose.yaml`, `.env.example`, `.gitignore` and `rag-test.md`) and passed an SHA-256 comparison. It **did not** include application volumes, models or a tested full restore. Back up persistent data separately before relying on this system.
+The original backup contained configuration files (`compose.yaml`, `.env.example`, `.gitignore` and `rag-test.md`) and passed an SHA-256 comparison. It **did not** include application volumes, models or a tested full restore. Back up persistent data separately before relying on this system. This historical backup is distinct from the current public repository contents.
 
 ## Known limitations
 
