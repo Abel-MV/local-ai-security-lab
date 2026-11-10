@@ -35,14 +35,26 @@ The initial implementation runs on Kali Linux with Docker Compose, Ollama, Open 
 ```mermaid
 flowchart TD
     User["User / browser"] -->|"127.0.0.1:3000"| Web["Open WebUI"]
+
     subgraph Network["Docker bridge network: ai_network"]
         Web -->|"HTTP :11434"| Ollama["Ollama"]
         Web -->|"HTTP :6333"| Qdrant["Qdrant"]
     end
+
     Ollama --> GPU["NVIDIA GPU"]
     Docs["Test documents"] --> Web
     Web -->|"Embedding requests via Ollama"| Ollama
     Web -->|"Store and retrieve vectors"| Qdrant
+
+    classDef webui fill:#2563eb,color:#ffffff,stroke:#1d4ed8,stroke-width:2px
+    classDef service fill:#7c3aed,color:#ffffff,stroke:#6d28d9,stroke-width:2px
+    classDef gpu fill:#2563eb,color:#ffffff,stroke:#1d4ed8,stroke-width:2px
+    classDef external fill:#242424,color:#ffffff,stroke:#555555
+
+    class Web webui
+    class Ollama,Qdrant service
+    class GPU gpu
+    class User,Docs external
 ```
 
 Open WebUI provides the browser interface and coordinates document processing and retrieval. Ollama runs both language and embedding models using the NVIDIA GPU. Qdrant stores the resulting vectors. The embedding model is a model served by Ollama, **not** a separate container.
