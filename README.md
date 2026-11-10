@@ -6,7 +6,21 @@ The initial implementation runs on Kali Linux with Docker Compose, Ollama, Open 
 
 ## Project Status
 
-**Initial deployment: completed and verified.** Further hardening, adversarial RAG testing, repeatable benchmarks and full backup/restore testing remain planned work. The original lab configuration and detailed installation notes are retained privately while a reviewed, reproducible public deployment guide is prepared.
+**Initial deployment: completed and verified.** The deployment configuration, technical documentation and ten test screenshots are published in this repository. A complete clean-install redeployment on another system has **not** yet been validated. Further hardening, adversarial RAG testing, repeatable benchmarks and full backup/restore testing remain planned work.
+
+## Documentation and Repository Contents
+
+| Resource | Description |
+|---|---|
+| [Architecture](docs/architecture.md) | Components, Docker networking, persistent storage and RAG data flows |
+| [Deployment guide](docs/deployment.md) | Installation, configuration, model setup and verification steps |
+| [Security assessment](docs/security.md) | Implemented controls, trust boundaries, risks and outstanding work |
+| [Validation and test evidence](docs/validation.md) | Ten recorded checks with linked screenshots E01–E10 |
+| [Docker Compose configuration](config/compose.yaml) | Recorded three-service deployment configuration |
+| [Environment variable template](config/.env.example) | Placeholder for the Open WebUI secret; no real credentials |
+| [Evidence directory](evidence/) | Screenshots from the verified initial implementation |
+
+> **Reproducibility note:** The deployment guide and configuration are provided for review and reuse, but have not yet been validated through a full rebuild on a second Kali installation. The Docker image tags in the recorded configuration are mutable.
 
 ## Objectives
 
@@ -57,9 +71,9 @@ flowchart TD
     class User,Docs external
 ```
 
-Open WebUI provides the browser interface and coordinates document processing and retrieval. Ollama runs both language and embedding models using the NVIDIA GPU. Qdrant stores the resulting vectors. The embedding model is a model served by Ollama, **not** a separate container.
+Open WebUI provides the browser interface and coordinates document processing and retrieval. Ollama runs both language and embedding models using the NVIDIA GPU. Qdrant stores the resulting vectors. The embedding model is served by Ollama, **not** by a separate container. For service boundaries and data flows, see the [architecture document](docs/architecture.md).
 
-### Network and storage
+### Network and Storage
 
 | Service | Container port | Published on host |
 |---|---|---|
@@ -78,7 +92,7 @@ The services share the Docker bridge network `ai_network` and use three separate
 5. Configured document embeddings and Qdrant-backed retrieval in Open WebUI.
 6. Checked functional results, host port exposure and data persistence.
 
-An example deployment configuration will be added after its secrets, dependencies and reproducibility have been reviewed. This README is a **project overview**, not yet a complete clean-install tutorial.
+The recorded [`compose.yaml`](config/compose.yaml) and [deployment guide](docs/deployment.md) are now published. They document the initial setup and explain what has **not** been verified for a clean-install reproduction.
 
 ## Validation
 
@@ -99,7 +113,7 @@ The initial lab recorded ten checks:
 
 For the RAG validation, the system retrieved information from a test document about network forensics. In a separate test, it acknowledged that a requested SHA-256 hash was not present in the source instead of inventing one. These are **limited functional observations**, not proof of general hallucination resistance.
 
-Ten corresponding screenshots (E01–E10) were recorded in the private Obsidian portfolio. Selected, privacy-reviewed evidence will be added to this public repository; no evidence links are included here until the files are available.
+All ten screenshots are available in the [evidence directory](evidence/) and embedded with their corresponding checks in the [validation report](docs/validation.md).
 
 ## Security Review
 
@@ -115,13 +129,13 @@ Ten corresponding screenshots (E01–E10) were recorded in the private Obsidian 
 **Known gaps and future work:**
 
 - The lab configuration used mutable Docker image tags; pinning verified versions or digests is planned.
-- Qdrant API authentication was not configured; its network isolation must be maintained and reviewed.
+- Qdrant API authentication was not configured; its network accessibility must be controlled and reviewed.
 - Container hardening and access restrictions between services need further assessment.
 - Prompt-injection, knowledge-base poisoning and data-leakage tests have not been completed.
 - A comprehensive backup-and-restore procedure for all volumes remains to be tested.
 - Formal performance benchmarks and ongoing monitoring are planned.
 
-These are identified design limitations and untested risks, **not** claims of exploited vulnerabilities.
+These are identified design limitations and untested risks, **not** claims of exploited vulnerabilities. See the [security assessment](docs/security.md) for details.
 
 ## Results and Lessons Learned
 
