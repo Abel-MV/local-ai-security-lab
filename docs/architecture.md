@@ -44,6 +44,7 @@ The embedding model runs **through Ollama**, not as a fourth container. The diag
 | Qdrant | Vector storage and similarity search |
 | `embeddinggemma-2:740m` | Document and query embeddings, served by Ollama |
 | `qwen3.5:9b` | Language model used for the documented RAG tests |
+| `gemma4:12b` | Additional language model tested with NVIDIA GPU acceleration |
 
 A Gemma model was also tested for GPU inference; the documented RAG retrieval workflow used Qwen.
 
